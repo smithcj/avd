@@ -1,0 +1,17 @@
+# Containerlab generated files
+clab-*/
+
+# AVD generated output
+intended/
+documentation/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
