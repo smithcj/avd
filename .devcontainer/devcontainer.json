@@ -1,4 +1,7 @@
 {
     "name": "AVD Universal",
-    "image": "ghcr.io/aristanetworks/avd/universal:python3.11-avd-v6.4.0"
+    "image": "ghcr.io/aristanetworks/avd/universal:python3.11-avd-v6.4.0",
+    "runArgs": [
+        "--network=avd_mgmt"
+    ]
 }
