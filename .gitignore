@@ -4,6 +4,7 @@ clab-*/
 # AVD generated output
 intended/
 documentation/
+/mac/containerlab
 
 # Python
 __pycache__/
@@ -15,3 +16,5 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+
