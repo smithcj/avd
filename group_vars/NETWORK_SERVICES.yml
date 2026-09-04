@@ -1,0 +1,98 @@
+---
+# ============================================================================
+# NETWORK_SERVICES.yml
+#
+# Network services for the EVPN/VXLAN fabric.
+#
+# All user VLANs will now have Layer-3 SVIs.
+# The SVIs live in the EOS DEFAULT VRF.
+#
+# This means:
+#
+#   VLAN 10  -> 10.10.10.1/24
+#   VLAN 20  -> 10.20.20.1/24
+#   VLAN 30  -> 10.30.30.1/24
+#   VLAN 40  -> 10.40.40.1/24
+#   VLAN 50  -> 10.50.50.1/24
+#
+# The gateway IP is identical on every VTEP.
+# ============================================================================
+
+tenants:
+
+  - name: LAB
+
+    # ------------------------------------------------------------------------
+    # MAC-VRF VNI base
+    #
+    # VLAN 10 -> VNI 10010
+    # VLAN 20 -> VNI 10020
+    # etc.
+    # ------------------------------------------------------------------------
+    mac_vrf_vni_base: 10000
+
+
+    # ------------------------------------------------------------------------
+    # VRFs
+    #
+    # "default" means these SVIs are placed in the normal EOS routing table.
+    #
+    # AVD still organizes them underneath a VRF in its data model, but EOS
+    # will NOT create something like:
+    #
+    #     vrf instance default
+    #
+    # Default is the native/global routing table.
+    # ------------------------------------------------------------------------
+    vrfs:
+
+      - name: default
+
+        # AVD uses this as an internal identifier for this routing domain.
+        # This does NOT mean VLAN 1 or create "VRF 1" on EOS.
+        vrf_id: 1
+
+
+        # --------------------------------------------------------------------
+        # SVIs
+        #
+        # ip_address_virtual creates a VXLAN anycast gateway.
+        #
+        # Every leaf gets the SAME gateway address.
+        #
+        # Example:
+        #
+        #   leaf1 Vlan10 -> 10.10.10.1/24
+        #   leaf2 Vlan10 -> 10.10.10.1/24
+        #   leaf3 Vlan10 -> 10.10.10.1/24
+        #   leaf4 Vlan10 -> 10.10.10.1/24
+        #
+        # A host can therefore use 10.10.10.1 as its gateway regardless of
+        # which VTEP it is physically attached to.
+        # --------------------------------------------------------------------
+        svis:
+
+          - id: 10
+            name: USERS
+            enabled: true
+            ip_address_virtual: 10.10.10.1/24
+
+          - id: 20
+            name: SERVERS
+            enabled: true
+            ip_address_virtual: 10.20.20.1/24
+
+          - id: 30
+            name: VOICE
+            enabled: true
+            ip_address_virtual: 10.30.30.1/24
+
+          - id: 40
+            name: IOT
+            enabled: true
+            ip_address_virtual: 10.40.40.1/24
+
+          - id: 50
+            name: GUEST
+            enabled: true
+            ip_address_virtual: 10.50.50.1/24

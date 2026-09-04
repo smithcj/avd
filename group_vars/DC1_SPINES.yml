@@ -47,6 +47,7 @@ spine:
 
     # We are running Arista cEOS inside Containerlab.
     platform: cEOSLab
+    isis_system_id_prefix: "0000.0001"
 
 
     # ------------------------------------------------------------------------

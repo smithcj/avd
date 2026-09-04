@@ -37,6 +37,26 @@ topology:
     leaf4:
       kind: arista_ceos
       mgmt-ipv4: 172.20.20.24
+      
+    host1:
+      kind: linux
+      image: alpine:latest
+      mgmt-ipv4: 172.20.20.31
+      exec:
+        - ip link set eth1 up
+        - ip address add 10.10.10.11/24 dev eth1
+        - ip route del default via 172.20.20.1 dev eth0
+        - ip route add default via 10.10.10.1 dev eth1
+
+    host2:
+      kind: linux
+      image: alpine:latest
+      mgmt-ipv4: 172.20.20.32
+      exec:
+        - ip link set eth1 up
+        - ip address add 10.20.20.12/24 dev eth1
+        - ip route del default via 172.20.20.1 dev eth0
+        - ip route add default via 10.20.20.1 dev eth1
 
   links:
     # Leaf1 uplinks
@@ -62,3 +82,7 @@ topology:
     # MLAG leaf3/leaf4
     - endpoints: ["leaf3:eth3", "leaf4:eth3"]
     - endpoints: ["leaf3:eth4", "leaf4:eth4"]
+
+    - endpoints: ["host1:eth1", "leaf1:eth5"]
+
+    - endpoints: ["host2:eth1", "leaf3:eth5"]

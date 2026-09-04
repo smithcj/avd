@@ -52,8 +52,15 @@ fabric_name: FABRIC
 # Even before we configure VLANs/VNIs, we can build the BGP EVPN
 # infrastructure.
 # ----------------------------------------------------------------------------
-underlay_routing_protocol: ebgp
+underlay_routing_protocol: isis
 overlay_routing_protocol: ebgp
+
+# IS-IS area portion of the NET
+isis_area_id: "49.0001"
+
+# A leaf/spine fabric normally only needs Level-2.
+isis_default_is_type: level-2
+isis_default_circuit_type: level-2
 
 
 # ----------------------------------------------------------------------------

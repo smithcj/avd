@@ -1,0 +1,74 @@
+#
+# Defines devices physically connected to the fabric.
+#
+# Containerlab creates the cable.
+# AVD configures the corresponding EOS switchport.
+#
+# host1 -> leaf1 Ethernet5 -> VLAN 10
+# host2 -> leaf3 Ethernet5 -> VLAN 20
+# ============================================================================
+
+servers:
+
+  # --------------------------------------------------------------------------
+  # HOST 1
+  #
+  # Containerlab:
+  #
+  #   host1:eth1 <----> leaf1:eth5
+  #
+  # EOS:
+  #
+  #   interface Ethernet5
+  #      switchport mode access
+  #      switchport access vlan 10
+  # --------------------------------------------------------------------------
+  - name: host1
+
+    adapters:
+
+      - endpoint_ports:
+          - eth1
+
+        switches:
+          - leaf1
+
+        switch_ports:
+          - Ethernet5
+
+        mode: access
+        vlans: 10
+
+        spanning_tree_portfast: edge
+
+
+  # --------------------------------------------------------------------------
+  # HOST 2
+  #
+  # Containerlab:
+  #
+  #   host2:eth1 <----> leaf3:eth5
+  #
+  # EOS:
+  #
+  #   interface Ethernet5
+  #      switchport mode access
+  #      switchport access vlan 20
+  # --------------------------------------------------------------------------
+  - name: host2
+
+    adapters:
+
+      - endpoint_ports:
+          - eth1
+
+        switches:
+          - leaf3
+
+        switch_ports:
+          - Ethernet5
+
+        mode: access
+        vlans: 20
+
+        spanning_tree_portfast: edge

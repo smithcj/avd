@@ -59,7 +59,7 @@ l3leaf:
 
     # Containerized EOS running under Containerlab.
     platform: cEOSLab
-
+    isis_system_id_prefix: "0000.0002"
 
     # ------------------------------------------------------------------------
     # LOOPBACK0 POOL
