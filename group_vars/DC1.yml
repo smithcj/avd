@@ -1,0 +1,83 @@
+---
+# ============================================================================
+# DC1.yml
+#
+# Settings common to every switch inside the DC1 group.
+#
+# Our inventory contains:
+#
+#   DC1
+#   ├── DC1_SPINES
+#   │   ├── spine1
+#   │   └── spine2
+#   │
+#   └── DC1_L3_LEAVES
+#       ├── leaf1
+#       ├── leaf2
+#       ├── leaf3
+#       └── leaf4
+#
+# Therefore variables here are inherited by all six switches.
+# ============================================================================
+
+
+# ============================================================================
+# MANAGEMENT NETWORK
+# ============================================================================
+#
+# Containerlab management network:
+#
+#     172.20.20.0/24
+#
+# Containerlab/Docker provides the gateway:
+#
+#     172.20.20.1
+#
+# Individual switch IP addresses are defined later under their node
+# definitions.
+# ============================================================================
+
+mgmt_gateway: 172.20.20.1
+
+
+# ----------------------------------------------------------------------------
+# Put Management0 into a dedicated EOS VRF named MGMT.
+#
+# This matches the environment variable in lab1.clab.yml:
+#
+#     CLAB_MGMT_VRF: MGMT
+#
+# Keeping management traffic separate from the default VRF is also much
+# closer to how a production network would normally be built.
+# ----------------------------------------------------------------------------
+mgmt_interface_vrf: MGMT
+
+
+# ----------------------------------------------------------------------------
+# Allow routing from the management VRF.
+#
+# This allows the management interface to use the gateway above.
+# ----------------------------------------------------------------------------
+mgmt_vrf_routing: true
+
+
+# ============================================================================
+# EOS eAPI
+# ============================================================================
+#
+# AVD/Ansible will communicate with these switches using EOS eAPI.
+#
+# We enable HTTPS so Ansible can connect to:
+#
+#     https://172.20.20.x/command-api
+#
+# rather than configuring the switches primarily through SSH.
+# ============================================================================
+
+management_eapi:
+
+  # Enable EOS eAPI.
+  enabled: true
+
+  # Enable the HTTPS API server.
+  enable_https: true

@@ -1,0 +1,110 @@
+---
+# ============================================================================
+# DC1_SPINES.yml
+#
+# Defines the spine switches in our leaf/spine topology.
+#
+#
+#                  +----------+
+#                  | spine1   |
+#                  | AS 65100 |
+#                  +----------+
+#                  /  /  \   \
+#                 /  /    \   \
+#              leaf1 leaf2 leaf3 leaf4
+#
+#
+#                  +----------+
+#                  | spine2   |
+#                  | AS 65100 |
+#                  +----------+
+#                  \  \    /   /
+#                   \  \  /   /
+#              leaf1 leaf2 leaf3 leaf4
+#
+#
+# Both spines use the same BGP ASN.
+# ============================================================================
+
+
+# Tell AVD that devices in this group are spine switches.
+type: spine
+
+
+# ============================================================================
+# SPINE NODE TYPE
+# ============================================================================
+
+spine:
+
+  # --------------------------------------------------------------------------
+  # DEFAULTS
+  #
+  # These settings apply to every spine unless overridden under an individual
+  # node.
+  # --------------------------------------------------------------------------
+  defaults:
+
+    # We are running Arista cEOS inside Containerlab.
+    platform: cEOSLab
+
+
+    # ------------------------------------------------------------------------
+    # LOOPBACK0 ADDRESS POOL
+    #
+    # AVD automatically assigns Loopback0 addresses from this pool.
+    #
+    # Loopback0 is used as a stable router identifier / control-plane address.
+    #
+    # Expected:
+    #
+    #   spine1 -> 10.255.0.1
+    #   spine2 -> 10.255.0.2
+    #
+    # The exact allocations can be verified in the generated config.
+    # ------------------------------------------------------------------------
+    loopback_ipv4_pool: 10.255.0.0/27
+
+
+    # ------------------------------------------------------------------------
+    # SPINE BGP ASN
+    #
+    # Both spines are members of AS 65100.
+    #
+    # The leaves will use separate ASNs:
+    #
+    #   leaf1/leaf2 -> 65101
+    #   leaf3/leaf4 -> 65102
+    #
+    # This gives us an eBGP leaf/spine underlay.
+    # ------------------------------------------------------------------------
+    bgp_as: 65100
+
+
+  # ==========================================================================
+  # INDIVIDUAL SPINES
+  # ==========================================================================
+
+  nodes:
+
+    # ------------------------------------------------------------------------
+    # SPINE1
+    # ------------------------------------------------------------------------
+    - name: spine1
+
+      # AVD uses node IDs when calculating addresses and other values.
+      id: 1
+
+      # Containerlab management IP assigned in lab1.clab.yml.
+      mgmt_ip: 172.20.20.11/24
+
+
+    # ------------------------------------------------------------------------
+    # SPINE2
+    # ------------------------------------------------------------------------
+    - name: spine2
+
+      id: 2
+
+      # Containerlab management IP.
+      mgmt_ip: 172.20.20.12/24

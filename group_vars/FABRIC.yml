@@ -1,0 +1,238 @@
+---
+# ============================================================================
+# FABRIC.yml
+#
+# Global settings for the entire LAB1 AVD fabric.
+#
+# This file contains:
+#   - Fabric-wide routing protocol choices
+#   - Ansible/eAPI connection settings
+#   - cEOS / Containerlab platform-specific settings
+#   - Default interface assignments
+#
+# More specific settings are placed in:
+#   DC1.yml
+#   DC1_SPINES.yml
+#   DC1_L3_LEAVES.yml
+# ============================================================================
+
+
+# ----------------------------------------------------------------------------
+# FABRIC NAME
+#
+# IMPORTANT:
+# In AVD this is not just a descriptive name.
+#
+# It MUST match the Ansible inventory group containing all devices
+# participating in this fabric.
+#
+# Our inventory hierarchy is:
+#
+#   FABRIC
+#   └── DC1
+#       ├── DC1_SPINES
+#       └── DC1_L3_LEAVES
+#
+# Therefore the fabric_name must be "FABRIC".
+# ----------------------------------------------------------------------------
+fabric_name: FABRIC
+
+
+# ----------------------------------------------------------------------------
+# ROUTING PROTOCOLS
+#
+# Underlay:
+#   Provides IP reachability between the leaf and spine switches.
+#   We are using eBGP between every leaf and spine.
+#
+# Overlay:
+#   Carries EVPN routes between VTEPs.
+#   This will eventually provide VXLAN control-plane functionality.
+#
+# Even before we configure VLANs/VNIs, we can build the BGP EVPN
+# infrastructure.
+# ----------------------------------------------------------------------------
+underlay_routing_protocol: ebgp
+overlay_routing_protocol: ebgp
+
+
+# ----------------------------------------------------------------------------
+# POINT-TO-POINT LINK MTU
+#
+# Physical links between leafs and spines:
+#
+#   spine1 Eth1 <----> leaf1 Eth1
+#   spine2 Eth1 <----> leaf1 Eth2
+#
+# etc.
+#
+# Containerlab Ethernet links work fine with 1500 bytes, so for this lab we
+# keep the fabric at standard Ethernet MTU.
+#
+# In a production VXLAN environment you would commonly use jumbo MTUs.
+# ----------------------------------------------------------------------------
+p2p_uplinks_mtu: 1500
+
+
+# ============================================================================
+# ANSIBLE CONNECTION SETTINGS
+# ============================================================================
+
+# Tell Ansible to talk to EOS through its HTTP API (eAPI).
+#
+# This is different from using SSH and sending CLI commands.
+ansible_connection: ansible.netcommon.httpapi
+
+# Tell Ansible that the devices are Arista EOS switches.
+ansible_network_os: arista.eos.eos
+
+
+# ----------------------------------------------------------------------------
+# DEVICE CREDENTIALS
+#
+# Containerlab cEOS defaults to admin/admin unless you changed it.
+#
+# Fine for a local lab.
+# Do NOT do this in production.
+# ----------------------------------------------------------------------------
+ansible_user: admin
+ansible_password: admin
+
+
+# Allow Ansible to enter privileged/enable mode where required.
+ansible_become: true
+ansible_become_method: enable
+
+
+# ----------------------------------------------------------------------------
+# eAPI HTTPS SETTINGS
+#
+# Connect to EOS eAPI using HTTPS.
+#
+# cEOS uses a locally generated/self-signed certificate, so certificate
+# validation is disabled for this lab.
+# ----------------------------------------------------------------------------
+ansible_httpapi_use_ssl: true
+ansible_httpapi_validate_certs: false
+
+
+# ============================================================================
+# cEOS / CONTAINERLAB MANAGEMENT INTERFACE
+# ============================================================================
+#
+# This is important.
+#
+# Containerlab connects the container management interface (eth0) to:
+#
+#     EOS Management0
+#
+# We therefore explicitly tell AVD that the management interface for cEOS
+# devices is Management0.
+#
+# Otherwise a platform default could result in AVD generating a different
+# management interface name.
+# ============================================================================
+
+custom_platform_settings:
+
+  - platforms:
+      - CEOS
+      - cEOS
+      - ceos
+      - cEOSLab
+
+    management_interface: Management0
+
+
+# ============================================================================
+# DEFAULT PHYSICAL INTERFACE ASSIGNMENTS
+# ============================================================================
+#
+# These settings describe how we physically wired the Containerlab topology.
+#
+#
+# SPINES
+# ------
+#
+# spine1:
+#
+#   Ethernet1 -> leaf1
+#   Ethernet2 -> leaf2
+#   Ethernet3 -> leaf3
+#   Ethernet4 -> leaf4
+#
+# spine2 uses the same pattern.
+#
+#
+# LEAVES
+# ------
+#
+# Every leaf uses:
+#
+#   Ethernet1 -> spine1
+#   Ethernet2 -> spine2
+#
+#
+# MLAG PEER LINKS
+# ---------------
+#
+# leaf1 <-> leaf2:
+#
+#   Ethernet3 <-> Ethernet3
+#   Ethernet4 <-> Ethernet4
+#
+# leaf3 <-> leaf4 uses the same layout.
+#
+# AVD will build the MLAG peer-link Port-Channel using Ethernet3-4.
+# ============================================================================
+
+default_interfaces:
+
+  # --------------------------------------------------------------------------
+  # Spine-facing interfaces
+  # --------------------------------------------------------------------------
+  - types:
+      - spine
+
+    platforms:
+      - default
+
+    # Interfaces available for connections DOWN to leaves.
+    downlink_interfaces:
+      - Ethernet1-4
+
+
+  # --------------------------------------------------------------------------
+  # Leaf-facing interfaces
+  # --------------------------------------------------------------------------
+  - types:
+      - l3leaf
+
+    platforms:
+      - default
+
+    # Physical routed uplinks toward the two spines.
+    uplink_interfaces:
+      - Ethernet1-2
+
+    # Interfaces dedicated to the MLAG peer-link.
+    mlag_interfaces:
+      - Ethernet3-4
+
+# ============================================================================
+# LOCAL USER / AAA
+#
+# The deployment role replaces the running configuration with the intended
+# configuration, so we explicitly preserve the admin account used by Ansible.
+#
+# Lab credentials:
+#   username: admin
+#   password: admin
+# ============================================================================
+
+aaa_settings:
+  local_users:
+    - name: admin
+      privilege: 15
+      role: network-admin
+      cleartext_password: admin

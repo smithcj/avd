@@ -1,0 +1,329 @@
+---
+# ============================================================================
+# DC1_L3_LEAVES.yml
+#
+# Defines the four leaf switches.
+#
+# We have TWO MLAG pairs:
+#
+#
+#              spine1                  spine2
+#                 | \                    / |
+#                 |  \                  /  |
+#                 |   \                /   |
+#                 |    \              /    |
+#              leaf1 ==================== leaf2
+#                    MLAG peer-link
+#
+#                    BGP AS 65101
+#
+#
+#              spine1                  spine2
+#                 | \                    / |
+#                 |  \                  /  |
+#                 |   \                /   |
+#                 |    \              /    |
+#              leaf3 ==================== leaf4
+#                    MLAG peer-link
+#
+#                    BGP AS 65102
+#
+#
+# Physical leaf interface convention:
+#
+#   Ethernet1 -> spine1
+#   Ethernet2 -> spine2
+#
+#   Ethernet3 \
+#               > MLAG peer-link
+#   Ethernet4 /
+#
+# ============================================================================
+
+
+# Tell AVD these devices are Layer-3 leaf switches.
+type: l3leaf
+
+
+# ============================================================================
+# L3 LEAF NODE TYPE
+# ============================================================================
+
+l3leaf:
+
+  # ==========================================================================
+  # DEFAULT SETTINGS FOR ALL LEAVES
+  # ==========================================================================
+
+  defaults:
+
+    # Containerized EOS running under Containerlab.
+    platform: cEOSLab
+
+
+    # ------------------------------------------------------------------------
+    # LOOPBACK0 POOL
+    #
+    # Loopback0 is normally used as the router ID and routing control-plane
+    # address.
+    #
+    # The spines are already using addresses starting at:
+    #
+    #   10.255.0.1
+    #   10.255.0.2
+    #
+    # We therefore offset the leaves so their allocation begins after the
+    # spines.
+    # ------------------------------------------------------------------------
+    loopback_ipv4_pool: 10.255.0.0/27
+
+    loopback_ipv4_offset: 2
+
+
+    # ------------------------------------------------------------------------
+    # VXLAN VTEP LOOPBACK POOL
+    #
+    # AVD will normally create another loopback used as the VXLAN Tunnel
+    # Endpoint (VTEP).
+    #
+    # Think of it this way:
+    #
+    #   Loopback0 = routing/control-plane identity
+    #
+    #   VTEP Loopback = VXLAN tunnel source
+    #
+    # Later, when we create VNIs, VXLAN traffic will use this address.
+    # ------------------------------------------------------------------------
+    vtep_loopback_ipv4_pool: 10.255.1.0/27
+
+
+    # ------------------------------------------------------------------------
+    # UPSTREAM SPINES
+    #
+    # Every leaf is dual-homed to both spines.
+    #
+    # Leaf Ethernet1 -> spine1
+    # Leaf Ethernet2 -> spine2
+    # ------------------------------------------------------------------------
+    uplink_switches:
+      - spine1
+      - spine2
+
+
+    # ------------------------------------------------------------------------
+    # ROUTED LEAF/SPINE LINK ADDRESS POOL
+    #
+    # AVD automatically takes addresses from this pool and assigns /31
+    # point-to-point networks to the routed leaf/spine links.
+    #
+    # Example conceptually:
+    #
+    #   spine1 Eth1 ------- leaf1 Eth1
+    #      x.x.x.0/31        x.x.x.1/31
+    #
+    # We don't have to manually calculate every link.
+    # ------------------------------------------------------------------------
+    uplink_ipv4_pool: 10.255.255.0/26
+
+
+    # ------------------------------------------------------------------------
+    # MLAG CONTROL-PLANE IP POOL
+    #
+    # The two switches in each MLAG pair need IP connectivity to each other
+    # across their peer-link.
+    #
+    # AVD allocates those addresses from this pool.
+    # ------------------------------------------------------------------------
+    mlag_peer_ipv4_pool: 10.255.1.64/27
+
+
+    # ------------------------------------------------------------------------
+    # MLAG L3 BGP PEERING
+    #
+    # MLAG peers may also require an L3 BGP relationship between the two
+    # switches.
+    #
+    # AVD allocates those addresses separately from this pool.
+    # ------------------------------------------------------------------------
+    mlag_peer_l3_ipv4_pool: 10.255.1.96/27
+
+
+    # ------------------------------------------------------------------------
+    # ANYCAST GATEWAY MAC ADDRESS
+    #
+    # Later we will put VLAN interfaces (SVIs) on both members of an MLAG pair.
+    #
+    # Example:
+    #
+    #          leaf1                       leaf2
+    #
+    #       Vlan10                       Vlan10
+    #     10.10.10.1                   10.10.10.1
+    #           \                         /
+    #            same virtual MAC address
+    #
+    # Hosts see the same default gateway regardless of which leaf forwards
+    # the traffic.
+    #
+    # We aren't building those SVIs yet, but defining the MAC now prepares
+    # the fabric for that stage.
+    # ------------------------------------------------------------------------
+    virtual_router_mac_address: 00:1c:73:00:00:01
+
+
+    # ------------------------------------------------------------------------
+    # SPANNING TREE
+    #
+    # VXLAN does not eliminate the need for spanning tree on locally bridged
+    # Ethernet ports/VLANs.
+    #
+    # MSTP keeps the configuration relatively simple for this lab.
+    # ------------------------------------------------------------------------
+    spanning_tree_mode: mstp
+
+    # Make the leaf switches attractive STP roots.
+    spanning_tree_priority: 4096
+
+
+  # ==========================================================================
+  # MLAG PAIRS
+  #
+  # AVD calls these "node_groups".
+  #
+  # Putting two leaves into the same node_group tells AVD they belong
+  # together as an MLAG pair.
+  # ==========================================================================
+
+  node_groups:
+
+
+    # ========================================================================
+    # MLAG PAIR #1
+    #
+    # leaf1 + leaf2
+    #
+    # Both use BGP AS 65101.
+    # ========================================================================
+
+    - group: LEAF12
+
+      # Both members of an MLAG pair use the same BGP ASN.
+      bgp_as: 65101
+
+      nodes:
+
+
+        # --------------------------------------------------------------------
+        # LEAF1
+        # --------------------------------------------------------------------
+        - name: leaf1
+
+          # Used by AVD for deterministic address/interface assignments.
+          id: 1
+
+          # Containerlab management address.
+          mgmt_ip: 172.20.20.21/24
+
+
+          # ------------------------------------------------------------------
+          # REMOTE SPINE INTERFACES
+          #
+          # Remember:
+          #
+          # uplink_switches:
+          #
+          #   1. spine1
+          #   2. spine2
+          #
+          # This list corresponds POSITIONALLY to those switches.
+          #
+          # Therefore:
+          #
+          #   leaf1 Ethernet1 -> spine1 Ethernet1
+          #   leaf1 Ethernet2 -> spine2 Ethernet1
+          #
+          # Containerlab YAML:
+          #
+          #   spine1:eth1 <-> leaf1:eth1
+          #   spine2:eth1 <-> leaf1:eth2
+          #
+          # ------------------------------------------------------------------
+          uplink_switch_interfaces:
+            - Ethernet1
+            - Ethernet1
+
+
+        # --------------------------------------------------------------------
+        # LEAF2
+        # --------------------------------------------------------------------
+        - name: leaf2
+
+          id: 2
+
+          mgmt_ip: 172.20.20.22/24
+
+
+          # Containerlab:
+          #
+          #   spine1:eth2 <-> leaf2:eth1
+          #   spine2:eth2 <-> leaf2:eth2
+          #
+          # Therefore both remote spine interfaces are Ethernet2.
+          uplink_switch_interfaces:
+            - Ethernet2
+            - Ethernet2
+
+
+    # ========================================================================
+    # MLAG PAIR #2
+    #
+    # leaf3 + leaf4
+    #
+    # Both use BGP AS 65102.
+    # ========================================================================
+
+    - group: LEAF34
+
+      bgp_as: 65102
+
+      nodes:
+
+
+        # --------------------------------------------------------------------
+        # LEAF3
+        # --------------------------------------------------------------------
+        - name: leaf3
+
+          id: 3
+
+          mgmt_ip: 172.20.20.23/24
+
+
+          # Containerlab:
+          #
+          #   spine1:eth3 <-> leaf3:eth1
+          #   spine2:eth3 <-> leaf3:eth2
+          #
+          uplink_switch_interfaces:
+            - Ethernet3
+            - Ethernet3
+
+
+        # --------------------------------------------------------------------
+        # LEAF4
+        # --------------------------------------------------------------------
+        - name: leaf4
+
+          id: 4
+
+          mgmt_ip: 172.20.20.24/24
+
+
+          # Containerlab:
+          #
+          #   spine1:eth4 <-> leaf4:eth1
+          #   spine2:eth4 <-> leaf4:eth2
+          #
+          uplink_switch_interfaces:
+            - Ethernet4
+            - Ethernet4

@@ -1,0 +1,88 @@
+---
+# ============================================================================
+# build.yml
+#
+# BUILD the intended EOS configurations.
+#
+# This playbook does NOT push configuration to the switches.
+#
+#
+# AVD essentially has two major configuration-generation stages:
+#
+#
+#          YAML design variables
+#                  |
+#                  v
+#          +---------------+
+#          |  eos_designs  |
+#          +---------------+
+#                  |
+#                  v
+#         Structured Config
+#                  |
+#                  v
+#       +--------------------+
+#       | eos_cli_config_gen |
+#       +--------------------+
+#                  |
+#                  v
+#             EOS CLI
+#
+#
+# This separation is very useful because we can inspect exactly what AVD
+# intends to configure BEFORE touching the running switches.
+# ============================================================================
+
+
+- name: Build LAB1 Fabric
+
+  # Run against every device underneath the FABRIC inventory group.
+  hosts: FABRIC
+
+  # We do not need to log into the switches to generate the configuration.
+  gather_facts: false
+
+
+  tasks:
+
+    # ------------------------------------------------------------------------
+    # STEP 1 - BUILD THE NETWORK DESIGN
+    #
+    # eos_designs reads variables such as:
+    #
+    #   bgp_as
+    #   uplink_switches
+    #   uplink_ipv4_pool
+    #   loopback_ipv4_pool
+    #   MLAG node groups
+    #
+    # It then converts that high-level intent into detailed structured data.
+    #
+    # For example, instead of us manually assigning every /31 interface
+    # address, eos_designs calculates them.
+    # ------------------------------------------------------------------------
+    - name: Generate AVD structured configurations
+      ansible.builtin.import_role:
+        name: arista.avd.eos_designs
+
+
+    # ------------------------------------------------------------------------
+    # STEP 2 - GENERATE EOS CLI
+    #
+    # eos_cli_config_gen takes the structured data created above and turns
+    # it into an actual EOS configuration.
+    #
+    # Example:
+    #
+    #   interface Ethernet1
+    #      no switchport
+    #      ip address 10.x.x.x/31
+    #
+    #   router bgp 65101
+    #      neighbor ...
+    #
+    # The generated .cfg files are what we inspect before deployment.
+    # ------------------------------------------------------------------------
+    - name: Generate EOS configurations
+      ansible.builtin.import_role:
+        name: arista.avd.eos_cli_config_gen

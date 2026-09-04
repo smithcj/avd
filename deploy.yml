@@ -1,0 +1,62 @@
+---
+# ============================================================================
+# deploy.yml
+#
+# PUSH the AVD-generated configuration to the actual EOS switches.
+#
+# IMPORTANT:
+#
+# Running build.yml is safe because it only creates files.
+#
+# Running deploy.yml CHANGES THE SWITCH CONFIGURATION.
+#
+# Workflow:
+#
+#     1. Build
+#
+#        ansible-playbook -i inventory.yml build.yml
+#
+#     2. Inspect intended/configs/*.cfg
+#
+#     3. Verify Management0/eAPI configuration
+#
+#     4. Deploy
+#
+#        ansible-playbook -i inventory.yml deploy.yml
+#
+# ============================================================================
+
+
+- name: Deploy LAB1 Fabric
+
+  # Push configuration to all switches in the FABRIC group.
+  hosts: FABRIC
+
+  gather_facts: false
+
+  vars:
+    # Save the running configuration before performing the config replace.
+    eos_config_deploy_eapi_pre_running_config_backup: true
+    
+  tasks:
+
+    # ------------------------------------------------------------------------
+    # eos_config_deploy_eapi
+    #
+    # Uses Arista EOS eAPI to compare/deploy the generated configuration.
+    #
+    # Our Ansible inventory reaches the devices through:
+    #
+    #   spine1 -> 172.20.20.11
+    #   spine2 -> 172.20.20.12
+    #
+    #   leaf1  -> 172.20.20.21
+    #   leaf2  -> 172.20.20.22
+    #   leaf3  -> 172.20.20.23
+    #   leaf4  -> 172.20.20.24
+    #
+    # These connections go through Management0 in VRF MGMT.
+    # ------------------------------------------------------------------------
+    - name: Deploy EOS configurations using eAPI
+      ansible.builtin.import_role:
+        name: arista.avd.eos_config_deploy_eapi
